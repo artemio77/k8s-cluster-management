@@ -1,0 +1,8 @@
+dbUser:
+  username: cassandra
+  password: cassandra
+
+replicaCount: 3
+
+metrics:
+  enabled: true

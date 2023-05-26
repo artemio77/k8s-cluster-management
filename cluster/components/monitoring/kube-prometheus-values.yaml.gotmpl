@@ -1,0 +1,16 @@
+prometheus:
+  ingress:
+    enabled: true
+    hostname: monitoring-prometheus.{{ .Values.domain }}
+    tls: true
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-{{ .Values.certManagerIssuerEmail }}"
+      kubernetes.io/ingress.class: nginx
+alertmanager:
+  ingress:
+    enabled: true
+    hostname: monitoring-alertmanager.{{ .Values.domain }}
+    tls: true
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-{{ .Values.certManagerIssuerEmail }}"
+      kubernetes.io/ingress.class: nginx

@@ -1,0 +1,62 @@
+adminPassword: admin
+grafana.ini:
+  server:
+    root_url: https://monitoring-grafana.{{ .Values.domain }}
+  auth.gitlab:
+    allow_sign_up: true
+    role_attribute_strict: false
+    role_attribute_path: contains(groups[*], 'k8s-aderevets-trading-system') && 'Admin' || 'Viewer'
+    enabled: true
+    scopes: read_api
+    auth_url: https://gitlab.com/oauth/authorize
+    token_url: https://gitlab.com/oauth/token
+    api_url: https://gitlab.com/api/v4
+    client_id: 82a71b8c63bffab1d20dac44a03b66a7eabfdc1887c12af2672aeb0fcb939d64
+    client_secret: eb951c5cdbccc1a49be5ef9e380ffafbf71591d9fe9990995be153202f6b277e
+
+ingress:
+  enabled: true
+  hosts:
+    - monitoring-grafana.{{ .Values.domain }}
+  tls:
+    - hosts:
+        - monitoring-grafana.{{ .Values.domain }}
+      secretName: grafana-tls
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-{{ .Values.certManagerIssuerEmail }}"
+    kubernetes.io/ingress.class: nginx
+
+dashboards:
+  default:
+    kubernetes-monitoring:
+      gnetId: 12740
+      revision: 1
+      datasource: Prometheus-Local
+
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus-Local
+        type: prometheus
+        url: http://kube-prometheus-prometheus.monitoring:9090
+        access: proxy
+        isDefault: true
+
+persistence:
+  enabled: true
+  size: 1Gi

@@ -1,0 +1,125 @@
+helmDefaults:
+  atomic: true
+  wait: true
+environments:
+  local:
+    values:
+      - environments/local.yaml
+repositories:
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+  - name: jetstack
+    url: https://charts.jetstack.io
+  - name: kubernetes
+    url: https://kubernetes.github.io/dashboard
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+  - name: ingress-nginx
+    url: https://kubernetes.github.io/ingress-nginx
+  - name: oauth2-proxy
+    url: https://oauth2-proxy.github.io/manifests
+helmfiles:
+  - path: components/applications/cert-manager/helmfile.yaml
+releases:
+  - name: certmanager-crds-{{ .Values.releaseName }}
+    namespace: cert-manager
+    chart: ./components/cert-manager/crds-chart
+    version: v1.1.0
+    installed: true
+    hooks:
+      - events: [ prepare ]
+        showlogs: true
+        command: wget
+        args:
+          - -O
+          - ./components/cert-manager/crds-chart/templates/00-crds.yaml
+          - https://github.com/jetstack/cert-manager/releases/download/v1.7.1/cert-manager.crds.yaml
+
+  - name: certmanager-{{ .Values.releaseName }}
+    namespace: cert-manager
+    chart: jetstack/cert-manager
+    version: v1.7.1
+    installed: true
+    needs:
+      - cert-manager/certmanager-crds-{{ .Values.releaseName }}
+    values:
+      - ./components/cert-manager/values.yaml.gotmpl
+    hooks:
+      - events: [ "presync" ]
+        showlogs: true
+        command: "kubectl"
+        args: [ "label", "--overwrite", "namespace", "cert-manager", "cert-manager.io/disable-validation=true" ]
+      # Wait for some apiservices to be ready, see https://github.com/helm/helm/issues/6361
+      - events: [ "postsync" ]
+        showlogs: true
+        command: "sleep"
+        args: [ "10" ]
+
+  - name: certmanager-issuer-{{ .Values.releaseName }}
+    namespace: cert-manager
+    chart: ./components/cert-manager/issuer-chart
+    version: v1.0.0
+    installed: true
+    disableValidation: true
+    needs:
+      - cert-manager/certmanager-{{ .Values.releaseName }}
+    values:
+      - letsEncryptClusterIssuer:
+          #
+          # IMPORTANT: This value MUST be set to a valid email.
+          #
+          email: {{ .Values.certManagerIssuerEmail }}
+  - name: ingress-nginx-{{ .Values.releaseName }}
+    namespace: ingress-nginx
+    chart: ingress-nginx/ingress-nginx
+    version: 4.4.2
+    installed: true
+    needs:
+      - cert-manager/certmanager-{{ .Values.releaseName }}
+      - cert-manager/certmanager-issuer-{{ .Values.releaseName }}
+    values:
+      - components/ngnix-ingress-controller/values.yaml.gotmpl
+  - name: kubernetes-dashboard-{{ .Values.releaseName }}
+    namespace: kubernetes-dashboard
+    chart: kubernetes-dashboard/kubernetes-dashboard
+    version: 6.0.0
+    installed: true
+    needs:
+      - ingress-nginx/ingress-nginx-{{ .Values.releaseName }}
+    values:
+      - components/k8s-dashboard/values.yaml.gotmpl
+  - name: oauth2-proxy-{{ .Values.releaseName }}
+    namespace: kubernetes-dashboard
+    chart: oauth2-proxy/oauth2-proxy
+    version: 6.8.0
+    installed: true
+    needs:
+      - kubernetes-dashboard/kubernetes-dashboard-{{ .Values.releaseName }}
+    values:
+      - components/oauth-proxy/values.yaml.gotmpl
+  - name: grafana-{{ .Values.releaseName }}
+    namespace: monitoring
+    chart: grafana/grafana
+    version: 6.56.1
+    installed: true
+    needs:
+      - ingress-nginx/ingress-nginx-{{ .Values.releaseName }}
+    values:
+      - components/monitoring/grafana-values.yaml.gotmpl
+  - name: kube-prometheus-{{ .Values.releaseName }}
+    namespace: monitoring
+    chart: bitnami/kube-prometheus
+    version: 8.9.1
+    installed: true
+    needs:
+      - ingress-nginx/ingress-nginx-{{ .Values.releaseName }}
+    values:
+      - components/monitoring/kube-prometheus-values.yaml.gotmpl
+#  - name: external-dns-{{ .Values.releaseName }}
+#    namespace: kube-system
+#    chart: bitnami/external-dns
+#    version: 6.19.1
+#    installed: true
+#    values:
+#      - components/external-dns/external-dns-values.yaml.gotmpl
+

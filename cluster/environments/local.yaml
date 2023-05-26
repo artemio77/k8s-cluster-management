@@ -1,0 +1,4 @@
+releaseName: local
+domain: cluster.local
+certManagerIssuerEmail: derevets.artem@gmail.com
+---

@@ -1,0 +1,17 @@
+auth:
+  password: "redis-password"
+architecture: replication
+replica:
+  replicaCount: 2
+sentinel:
+  enabled: true
+  replicas: 3
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+useExternalDNS:
+  enabled: true
+  suffix: "k8s-aderevets-loc"
+  additionalAnnotations:
+    ttl: 10

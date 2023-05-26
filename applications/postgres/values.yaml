@@ -1,0 +1,15 @@
+username: api-user
+password: api-password
+database: apidb
+fullnameOverride: postgres-ha
+postgresql:
+  replicaCount: 2
+pgpool:
+  serviceAnnotations:
+    external-dns.alpha.kubernetes.io/hostname: postgresql-ha-pgpool.cluster.local
+persistence:
+  size: 2Gi
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true

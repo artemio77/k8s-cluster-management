@@ -1,0 +1,22 @@
+ingress:
+  enabled: true
+  hostname: kubeapps.k8s-aderevets-loc
+  tls: true
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    kubernetes.io/ingress.class: nginx
+authProxy:
+  enabled: true
+  provider: oidc
+  discoveryURL: https://gitlab.com
+  cookieSecret: "a-very-secret-co"
+  clientID: 82a71b8c63bffab1d20dac44a03b66a7eabfdc1887c12af2672aeb0fcb939d64
+  clientSecret: eb951c5cdbccc1a49be5ef9e380ffafbf71591d9fe9990995be153202f6b277e
+  extraFlags:
+    - --ssl-insecure-skip-verify
+    - --cookie-secure=false
+    - --oidc-issuer-url=https://gitlab.com
+    - --redirect-url=https://kubeapps.k8s-aderevets-loc/oauth2/callback
+    - --scope=read_api
+    - --set-authorization-header=true
+    - --email-domain=*

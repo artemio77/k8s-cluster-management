@@ -1,0 +1,6 @@
+provider: coredns
+clusterDomain: {{ .Values.domain }}
+isClusterService: true
+
+coredns:
+  etcdEndpoints: https://172.24.0.3:2379
